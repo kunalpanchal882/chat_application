@@ -1,7 +1,8 @@
 import userModel from "../models/user.model.js"
 import bcrypt from "bcryptjs"
 import {genrateToken} from '../utils/jwt.util.js'
-
+import { uploadImage } from "../services/cloudinary.service.js"
+import messgaeModel from "../models/message.model.js"
 async function registerController(req,res) {
     const {fullname,email,password} = req.body
 
@@ -94,10 +95,22 @@ async function logoutController(req,res) {
 
 async function updateProfileController(req,res) {
     try {
-        const {profilepic} = req.body
-        const userId = req.user._id
-    } catch (error) {
+        const file =req.file
+
+        if (!file) {
+          return res.status(400).json({message:"Profile pic is required"})  
+        }
         
+        const imgUrl = await uploadImage(file)
+        const userId = req.user._id
+
+        const user = await userModel.findOneAndUpdate(userId,{profilepic:imgUrl.url},{new:true})
+
+        res.status(201).json(user)
+        
+    } catch (error) {
+        console.log("Inernal server error",error);
+        res.status(404).json({message:"inter server error",error})
     }
 }
 

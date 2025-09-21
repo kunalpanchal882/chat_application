@@ -1,3 +1,4 @@
+
 import express from "express"
 import cookie from 'cookie-parser'
 import cors from "cors"
@@ -18,6 +19,6 @@ app.use(cors({
 
 /*use routes */
 app.use('/api/auth',authRoute)
-app.use('/api/message',messgaeRoute)
+app.use('/api/messages',messgaeRoute)
 
 export default app
