@@ -1,6 +1,8 @@
 import userModel from "../models/user.model.js"
 import messgaeModel from "../models/message.model.js"
-
+import { v2 as cloudinary } from "cloudinary";
+import mongoose from "mongoose";
+// import { uploadImage } from "../services/cloudinary.service.js"
 async function getUserForSidebarController(req,res) {
     try {
         const loggedInUSerId = req.user._id
@@ -33,29 +35,54 @@ async function getMessageController(req,res) {
     }
 }
 
-async function sendMessgaeController(params) {
-    try {
-        const {text,message} = req.body
+const sendMessageController = async (req, res) => {
+  try {
+    console.log("REQ BODY:", req.body);
+    console.log("REQ PARAMS:", req.params);
+    console.log("REQ USER:", req.user);
 
-        const {id:receiverId} = req.params
-        const mydD = req.user._id
+    const { text, image } = req.body;
+    const { id: receiverId } = req.params;
+    const senderId = req.user?._id;
 
-        let imageUrl;
-
-        const newMessage = new messgaeModel({
-            mydD,
-            receiverId,
-            text,
-        })
-
-         await newMessage.save()
-
-         res.status(201).json(newMessage)
-
-    } catch (error) {
-        console.error("Error in senderMessageControler",error.message);
-        res.status(500).json({error:"Internal server error"});
+    if (!senderId) {
+      return res.status(400).json({ error: "SenderId missing" });
     }
-}
+    if (!receiverId) {
+      return res.status(400).json({ error: "ReceiverId missing" });
+    }
 
-export {getUserForSidebarController,getMessageController,sendMessgaeController}
+    let imageUrl = null;
+    if (image) {
+      try {
+        const uploadResponse = await cloudinary.uploader.upload(image, {
+          folder: "chat_application",
+          resource_type: "auto",
+        });
+        imageUrl = uploadResponse.secure_url;
+      } catch(err) {
+        console.error("Cloudinary upload error:", err.message);
+      }
+    }
+
+    const newMessage = new messgaeModel({
+      senderId,
+      receiverId: new mongoose.Types.ObjectId(receiverId),
+      text,
+      image: imageUrl,
+    });
+
+    const saved = await newMessage.save();
+    console.log("Message saved:", saved);
+
+    res.status(201).json(saved);
+  } catch (error) {
+    console.error("Error in sendMessageController:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+0
+
+
+
+export {getUserForSidebarController,getMessageController,sendMessageController}
